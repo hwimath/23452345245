@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>휘매쓰 연산 챌린지!</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        #start-screen, #game-screen, #end-screen {
+            display: none;
+            padding: 20px;
+        }
+        #energy-bar {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 5px;
+            margin: 20px 0;
+            height: 30px;
+            position: relative;
+        }
+        #energy {
+            background-color: #4caf50;
+            height: 100%;
+            width: 100%;
+            border-radius: 5px;
+            transition: width 1s linear;
+        }
+        .difficulty-button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .option-button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 40%;
+        }
+        #score, #timer, #chances, #total-time {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        #question {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>휘매쓰 연산 챌린지!</h1>
+        <p>난이도를 선택하세요:</p>
+        <button class="difficulty-button" onclick="startGame('최상')">최상 (20초, 20점)</button>
+        <button class="difficulty-button" onclick="startGame('상')">상 (30초, 15점)</button>
+        <button class="difficulty-button" onclick="startGame('중')">중 (40초, 13점)</button>
+        <button class="difficulty-button" onclick="startGame('하')">하 (제한없음, 10점)</button>
+    </div>
+
+    <div id="game-screen">
+        <div id="score">점수: 0</div>
+        <div id="timer">남은 시간: <span id="time">0</span>초</div>
+        <div id="energy-bar">
+            <div id="energy"></div>
+        </div>
+        <div id="chances">남은 기회: 3</div>
+        <div id="total-time">총 시간: <span id="totalElapsed">0</span>초</div>
+        <div id="question">질문이 여기에 표시됩니다.</div>
+        <div id="options">
+            <button class="option-button" onclick="selectOption(0)">옵션 1</button>
+            <button class="option-button" onclick="selectOption(1)">옵션 2</button>
+            <button class="option-button" onclick="selectOption(2)">옵션 3</button>
+            <button class="option-button" onclick="selectOption(3)">옵션 4</button>
+        </div>
+    </div>
+
+    <div id="end-screen">
+        <h1>게임 종료!</h1>
+        <p>최종 점수: <span id="final-score">0</span></p>
+        <p>총 플레이 시간: <span id="final-time">0</span>초</p>
+        <button onclick="location.reload()">다시 시작</button>
+    </div>
+
+    <script>
+        const questions = [
+            // 문제 1-18: 약수의 개수 구하기
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3^4\\)", 
+                answer: 5, 
+                options: [3, 4, 5, 6] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2^7\\)", 
+                answer: 8, 
+                options: [7, 8, 9, 10] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2^3 \\times 3^2\\)", 
+                answer: 12, 
+                options: [6, 8, 10, 12] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3^2 \\times 5^4\\)", 
+                answer: 15, 
+                options: [10, 12, 15, 18] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3 \\times 5^4\\)", 
+                answer: 10, 
+                options: [8, 9, 10, 11] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(5^3 \\times 7\\)", 
+                answer: 8, 
+                options: [6, 7, 8, 9] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2^2 \\times 3^3\\)", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2^3 \\times 5^3\\)", 
+                answer: 16, 
+                options: [12, 14, 16, 18] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3^7 \\times 7^2\\)", 
+                answer: 24, 
+                options: [20, 22, 24, 26] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3^5 \\times 11\\)", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(13 \\times 23^{11}\\)", 
+                answer: 24, 
+                options: [20, 22, 24, 26] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(11^{11} \\times 29^4\\)", 
+                answer: 60, 
+                options: [48, 54, 60, 66] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3^2 \\times 5^3\\)", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2^4 \\times 3^2\\)", 
+                answer: 15, 
+                options: [12, 14, 15, 16] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(3^3 \\times 5^4\\)", 
+                answer: 20, 
+                options: [18, 20, 22, 24] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(5^3 \\times 7^2\\)", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2 \\times 3^2 \\times 5^2\\)", 
+                answer: 18, // 수정됨
+                options: [12, 14, 16, 18] // 수정됨
+            },
+            { 
+                question: "다음 수의 약수의 개수를 구하여라. <br> \\(2^4 \\times 3 \\times 5^2\\)", 
+                answer: 30, 
+                options: [24, 28, 30, 32] 
+            },
+            // 문제 24-47: 소인수분해를 이용한 약수의 개수
+            { 
+                question: "36의 약수의 개수를 구하여라.", 
+                answer: 9, 
+                options: [7, 8, 9, 10] 
+            },
+            { 
+                question: "40의 약수의 개수를 구하여라.", 
+                answer: 8, 
+                options: [6, 7, 8, 9] 
+            },
+            { 
+                question: "72의 약수의 개수를 구하여라.", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "90의 약수의 개수를 구하여라.", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "108의 약수의 개수를 구하여라.", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "110의 약수의 개수를 구하여라.", 
+                answer: 8, 
+                options: [6, 7, 8, 9] 
+            },
+            { 
+                question: "128의 약수의 개수를 구하여라.", 
+                answer: 8, 
+                options: [6, 7, 8, 9] 
+            },
+            { 
+                question: "196의 약수의 개수를 구하여라.", 
+                answer: 9, 
+                options: [7, 8, 9, 10] 
+            },
+            { 
+                question: "252의 약수의 개수를 구하여라.", 
+                answer: 18, 
+                options: [16, 18, 20, 22] 
+            },
+            { 
+                question: "363의 약수의 개수를 구하여라.", 
+                answer: 6, // 수정됨
+                options: [4, 5, 6, 8] // 수정됨
+            },
+            { 
+                question: "496의 약수의 개수를 구하여라.", 
+                answer: 10, // 수정됨
+                options: [8, 10, 12, 14] // 수정됨
+            },
+            { 
+                question: "528의 약수의 개수를 구하여라.", 
+                answer: 20, // 수정됨
+                options: [16, 18, 20, 22] // 수정됨
+            },
+            { 
+                question: "540의 약수의 개수를 구하여라.", 
+                answer: 24, 
+                options: [20, 22, 24, 26] 
+            },
+            { 
+                question: "675의 약수의 개수를 구하여라.", 
+                answer: 12, 
+                options: [10, 12, 14, 16] 
+            },
+            { 
+                question: "756의 약수의 개수를 구하여라.", 
+                answer: 24, 
+                options: [20, 22, 24, 26] 
+            },
+            { 
+                question: "800의 약수의 개수를 구하여라.", 
+                answer: 18, // 수정됨
+                options: [18, 20, 22, 24] // 수정됨
+            },
+            { 
+                question: "900의 약수의 개수를 구하여라.", 
+                answer: 27, 
+                options: [25, 26, 27, 28] 
+            },
+            // 문제 48-60: 제곱수가 되도록 곱할 수 있는 가장 작은 자연수
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 24", 
+                answer: 6, 
+                options: [2, 3, 4, 6] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 45", 
+                answer: 5, 
+                options: [3, 4, 5, 6] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 60", 
+                answer: 15, 
+                options: [10, 12, 15, 18] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 80", 
+                answer: 5, 
+                options: [2, 3, 4, 5] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 98", 
+                answer: 2, 
+                options: [1, 2, 3, 4] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 108", 
+                answer: 3, 
+                options: [1, 2, 3, 4] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 135", 
+                answer: 15, // 수정됨
+                options: [10, 12, 15, 18] // 수정됨
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 140", 
+                answer: 35, 
+                options: [25, 30, 35, 40] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 171", 
+                answer: 19, 
+                options: [17, 18, 19, 20] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 198", 
+                answer: 22, // 수정됨
+                options: [20, 21, 22, 23] // 수정됨
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 280", 
+                answer: 70, // 수정됨
+                options: [60, 65, 70, 75] // 수정됨
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 486", 
+                answer: 6, 
+                options: [3, 4, 5, 6] 
+            },
+            { 
+                question: "다음 수에 어떤 수를 곱하여 제곱수가 되도록 할 때, 곱할 수 있는 가장 작은 자연수를 구하여라. <br> 504", 
+                answer: 14, // 수정됨
+                options: [12, 14, 16, 18] // 수정됨
+            },
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let chances = 3;
+        let timer;
+        let totalTimer;
+        let timeLeft;
+        let selectedDifficulty = '중';
+        let difficultySettings = {
+            '최상': { time: 20, points: 20 },
+            '상': { time: 30, points: 15 },
+            '중': { time: 40, points: 13 },
+            '하': { time: null, points: 10 } // 시간 제한 없음
+        };
+        let totalElapsed = 0;
+
+        function startGame(difficulty) {
+            selectedDifficulty = difficulty;
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            document.getElementById('score').innerText = `점수: ${score}`;
+            document.getElementById('chances').innerText = `남은 기회: ${chances}`;
+            document.getElementById('totalElapsed').innerText = `${totalElapsed}`;
+            loadQuestion();
+            startTimers();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                currentQuestionIndex = 0; // 모든 문제가 끝나면 처음부터 반복
+            }
+            let q = questions[currentQuestionIndex];
+            document.getElementById('question').innerHTML = q.question;
+            let options = shuffle([...q.options]);
+            let optionButtons = document.getElementsByClassName('option-button');
+            for (let i = 0; i < optionButtons.length; i++) {
+                optionButtons[i].innerHTML = options[i];
+                optionButtons[i].dataset.correct = (options[i] === q.answer) ? 'true' : 'false';
+            }
+            MathJax.typesetPromise();
+            resetEnergyBar();
+        }
+
+        function selectOption(index) {
+            let optionButtons = document.getElementsByClassName('option-button');
+            let selected = parseInt(optionButtons[index].innerHTML);
+            let isCorrect = optionButtons[index].dataset.correct === 'true';
+            if (isCorrect) {
+                score += difficultySettings[selectedDifficulty].points;
+                document.getElementById('score').innerText = `점수: ${score}`;
+                nextQuestion();
+            } else {
+                chances--;
+                document.getElementById('chances').innerText = `남은 기회: ${chances}`;
+                if (chances <= 0) {
+                    endGame();
+                } else {
+                    nextQuestion();
+                }
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function startTimers() {
+            // 게임 총 시간
+            totalTimer = setInterval(() => {
+                totalElapsed++;
+                document.getElementById('totalElapsed').innerText = `${totalElapsed}`;
+            }, 1000);
+
+            // 질문별 타이머
+            if (difficultySettings[selectedDifficulty].time !== null) {
+                startQuestionTimer();
+            } else {
+                // 하 난이도: 타이머와 에너지 바 숨기기
+                document.getElementById('timer').style.display = 'none';
+                document.getElementById('energy-bar').style.display = 'none';
+            }
+        }
+
+        function startQuestionTimer() {
+            clearInterval(timer);
+            let baseTime = difficultySettings[selectedDifficulty].time;
+            timeLeft = baseTime;
+            document.getElementById('time').innerText = `${timeLeft}`;
+            document.getElementById('energy').style.width = '100%';
+            document.getElementById('timer').style.display = 'block';
+            document.getElementById('energy-bar').style.display = 'block';
+
+            timer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    chances--;
+                    document.getElementById('chances').innerText = `남은 기회: ${chances}`;
+                    if (chances <= 0) {
+                        endGame();
+                    } else {
+                        nextQuestion();
+                    }
+                } else {
+                    document.getElementById('time').innerText = `${timeLeft}`;
+                    let energyWidth = (timeLeft / difficultySettings[selectedDifficulty].time) * 100;
+                    document.getElementById('energy').style.width = `${energyWidth}%`;
+                }
+            }, 1000);
+        }
+
+        function resetEnergyBar() {
+            clearInterval(timer);
+            if (difficultySettings[selectedDifficulty].time !== null) {
+                startQuestionTimer();
+            }
+        }
+
+        function endGame() {
+            clearInterval(timer);
+            clearInterval(totalTimer);
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'block';
+            document.getElementById('final-score').innerText = `${score}`;
+            document.getElementById('final-time').innerText = `${totalElapsed}`;
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 초기 화면 표시
+        document.getElementById('start-screen').style.display = 'block';
+    </script>
+</body>
+</html>
